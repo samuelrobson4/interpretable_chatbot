@@ -124,10 +124,11 @@ Feel free to submit issues and enhancement requests!
 
 This project is open source and available under the MIT License. 
 
-👤 Made by
-Samuel Robson
-Product-minded strategist and AI prototyper
-🎓 MIMS @ UC Berkeley
+## 👤 Made by
+
+**Samuel Robson**  
+Product-minded strategist and AI prototyper  
+🎓 MIMS @ UC Berkeley  
 🛠️ Interpretability · Tangible Interfaces · Human-Centered AI
 
-GitHub · LinkedIn
+[GitHub](https://github.com/samuelrobson4) · [LinkedIn](https://www.linkedin.com/in/samuelrobson1/)
