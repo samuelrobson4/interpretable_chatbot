@@ -35,24 +35,25 @@ def get_confidence_color(confidence_percentage):
 
 def format_confidence_label(confidence_percentage):
     """Format confidence as a colored label with Apple-inspired design"""
-    # Define Apple-inspired colors for different confidence levels
-    if confidence_percentage >= 90:
+    if confidence_percentage >= 80:
         color = "#34c759"  # Apple green
-        color_dark = "#28a745"
-    elif confidence_percentage >= 75:
+    elif confidence_percentage >= 70:
         color = "#ff9500"  # Apple orange
-        color_dark = "#e67e00"
-    elif confidence_percentage >= 60:
+    elif confidence_percentage >= 40:
         color = "#ff3b30"  # Apple red
-        color_dark = "#d70015"
     else:
         color = "#ff2d92"  # Apple pink
-        color_dark = "#e6007a"
-    
+
     return f"""
-    <div class="confidence-label" style="
-        --confidence-color: {color};
-        --confidence-color-dark: {color_dark};
+    <div style="
+        background: {color};
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        display: inline-block;
+        font-weight: 600;
+        font-size: 14px;
+        margin: 8px 0;
     ">
         Confidence: {confidence_percentage:.1f}%
     </div>
@@ -114,6 +115,26 @@ def split_response_into_tokens(response_text):
     import re
     tokens = re.findall(r'\S+|\s+', response_text)
     return [token for token in tokens if token.strip()]
+
+def split_response_into_sentences(text):
+    import re
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    return [s for s in sentences if s]
+
+def group_token_confidences_by_sentence(response_text, tokens, confidences):
+    import re
+    sentences = split_response_into_sentences(response_text)
+    sentence_confidences = []
+
+    token_index = 0
+    for sentence in sentences:
+        sentence_token_count = len(re.findall(r'\S+', sentence))
+        sentence_conf = confidences[token_index:token_index + sentence_token_count]
+        avg_conf = sum(sentence_conf) / len(sentence_conf) if sentence_conf else 0
+        sentence_confidences.append((sentence, avg_conf))
+        token_index += sentence_token_count
+
+    return sentence_confidences
 
 def main():
     st.set_page_config(
@@ -196,28 +217,28 @@ def main():
     
     /* Confidence label styling */
     .confidence-label {
-        background: linear-gradient(135deg, var(--confidence-color) 0%, var(--confidence-color-dark) 100%);
-        color: white;
+        background: #f5f5f7;
+        border: 1px solid var(--confidence-color);
+        color: var(--confidence-color);
         padding: 8px 16px;
         border-radius: 20px;
         display: inline-block;
         font-weight: 600;
         font-size: 14px;
         margin: 8px 0;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
-    
+
     /* Token confidence badges */
     .token-badge {
-        background: var(--token-color);
-        color: white;
+        background: #f5f5f7;
         padding: 6px 12px;
         border-radius: 16px;
         display: inline-block;
         margin: 4px;
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 500;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--token-color);
+        color: var(--token-color);
     }
     
     /* Sidebar styling */
@@ -291,78 +312,25 @@ def main():
     if 'chat_history' not in st.session_state:
         st.session_state.chat_history = []
     
-    # Sidebar for configuration
-    with st.sidebar:
-        st.markdown("""
-        <div style="
-            background: white;
-            padding: 20px;
-            border-radius: 16px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-            border: 1px solid #e5e5e7;
-        ">
-            <h3 style="margin-top: 0; color: #1d1d1f;">Configuration</h3>
-        """, unsafe_allow_html=True)
-        
-        if client:
-            st.success("✅ API key configured")
-        else:
-            st.warning("⚠️ API key not found")
-        
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        st.markdown("""
-        <div style="
-            background: white;
-            padding: 20px;
-            border-radius: 16px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-            border: 1px solid #e5e5e7;
-        ">
-            <h3 style="margin-top: 0; color: #1d1d1f;">How it works</h3>
-            <p style="color: #86868b; line-height: 1.5;">
-            1. Enter your question below<br>
-            2. The model responds with confidence scores<br>
-            3. Click "View Token-Level Confidences" to see individual token confidence<br>
-            4. Overall confidence is shown at the top
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-    
     # Main chat interface
-    st.markdown('<h2 style="color: #1d1d1f; margin-bottom: 24px;">💬 Chat Interface</h2>', unsafe_allow_html=True)
-    
-    # Chat input container
-    st.markdown("""
-    <div style="
-        background: white;
-        padding: 24px;
-        border-radius: 16px;
-        margin-bottom: 24px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-        border: 1px solid #e5e5e7;
-    ">
-    """, unsafe_allow_html=True)
-    
-    # User input
-    user_question = st.text_input(
-        "Ask me anything:",
-        placeholder="e.g., What is the capital of France?",
-        key="user_input"
-    )
-    
-    col1, col2 = st.columns([1, 4])
-    with col1:
-        submit_button = st.button("Send", type="primary")
-    
-    with col2:
-        if st.button("Clear Chat", type="secondary"):
-            st.session_state.chat_history = []
-            st.rerun()
-    
-    st.markdown("</div>", unsafe_allow_html=True)
-    
+    st.markdown("## 💬 Chat Interface")
+
+    with st.container():
+        user_question = st.text_input(
+            placeholder="e.g., What is the capital of France?",
+            key="user_input",
+            label = ""
+
+        )
+
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            submit_button = st.button("Send", type="primary")
+        with col2:
+            if st.button("Clear Chat", type="secondary"):
+                st.session_state.chat_history = []
+                st.rerun()
+        
     # Process user input
     if submit_button and user_question:
         with st.spinner("🤔 Thinking..."):
@@ -388,91 +356,47 @@ def main():
     
     # Display chat history
     if st.session_state.chat_history:
-        st.markdown('<h2 style="color: #1d1d1f; margin: 32px 0 24px 0;">📝 Chat History</h2>', unsafe_allow_html=True)
-        
-        for i, entry in enumerate(reversed(st.session_state.chat_history)):
-            st.markdown("""
-            <div style="
-                background: white;
-                padding: 24px;
-                border-radius: 16px;
-                margin-bottom: 24px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-                border: 1px solid #e5e5e7;
-            ">
-            """, unsafe_allow_html=True)
-            
-            # User question
-            st.markdown(f"""
-            <div style="margin-bottom: 16px;">
-                <span style="
-                    background: #007aff;
-                    color: white;
-                    padding: 4px 12px;
-                    border-radius: 12px;
-                    font-size: 12px;
-                    font-weight: 600;
-                    margin-right: 8px;
-                ">You</span>
-                <span style="color: #1d1d1f; font-weight: 500;">{entry['question']}</span>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Display overall confidence
-            confidence_html = format_confidence_label(entry['overall_confidence'])
-            st.markdown(confidence_html, unsafe_allow_html=True)
-            
-            # Bot response
-            st.markdown("""
-            <div style="margin: 16px 0;">
-                <span style="
-                    background: #34c759;
-                    color: white;
-                    padding: 4px 12px;
-                    border-radius: 12px;
-                    font-size: 12px;
-                    font-weight: 600;
-                    margin-right: 8px;
-                ">Bot</span>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Response text in styled container
-            st.markdown(f"""
-            <div class="response-text">
-                {entry['response']}
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Token confidence expander
-            with st.expander("🔍 View Token-Level Confidences", expanded=False):
-                # Create columns for better layout
-                cols = st.columns(3)
-                
-                for j, token in enumerate(entry['tokens']):
-                    if j < len(entry['token_confidences']):
-                        confidence = entry['token_confidences'][j]
-                        col_idx = j % 3
-                        
-                        with cols[col_idx]:
-                            # Apple-inspired color coding
-                            if confidence >= 90:
-                                token_color = "#34c759"  # Apple green
-                            elif confidence >= 75:
-                                token_color = "#ff9500"  # Apple orange
-                            elif confidence >= 60:
-                                token_color = "#ff3b30"  # Apple red
-                            else:
-                                token_color = "#ff2d92"  # Apple pink
-                            
-                            st.markdown(f"""
-                            <div class="token-badge" style="--token-color: {token_color};">
-                                <strong>{token}</strong>: {confidence:.1f}%
-                            </div>
-                            """, unsafe_allow_html=True)
-            
-            st.markdown("</div>", unsafe_allow_html=True)
-    
+        st.markdown("## 📝 Chat History")
+
+        for entry in reversed(st.session_state.chat_history):
+            with st.container():
+                # User message
+                st.markdown(f"**You:** {entry['question']}")
+
+                # Confidence label
+                confidence_html = format_confidence_label(entry['overall_confidence'])
+                st.markdown(confidence_html, unsafe_allow_html=True)
+
+                # Bot response
+                st.markdown(f"**Bot:**")
+                st.markdown(f"""
+                <div class="response-text">
+                    {entry['response']}
+                </div>
+                """, unsafe_allow_html=True)
+
+                # Token-level confidences
+                with st.expander("🔍 View Sentence-Level Confidences", expanded=False):
+                    sentence_confidences = group_token_confidences_by_sentence(
+                        entry['response'], entry['tokens'], entry['token_confidences']
+                    )
+
+                    for sentence, conf in sentence_confidences:
+                        if conf >= 90:
+                            color = "#34c759"
+                        elif conf >= 75:
+                            color = "#ff9500"
+                        elif conf >= 60:
+                            color = "#ff3b30"
+                        else:
+                            color = "#ff2d92"
+
+                        st.markdown(f"""
+                        <div class="token-badge" style="--token-color: {color}; color: {color}; background: #f5f5f7; border: 1px solid {color};">
+                            {sentence.strip()} <span style='font-size: 12px;'>({conf:.1f}%)</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+
     # Instructions
     if not st.session_state.chat_history:
         st.markdown("""
@@ -491,42 +415,6 @@ def main():
                 3. <strong>Click Send</strong> to get a response with confidence analysis<br>
                 4. <strong>Click "View Token-Level Confidences"</strong> to see individual token confidence scores<br>
                 5. <strong>Overall confidence</strong> is shown with a colored label
-            </div>
-            
-            <h3 style="color: #1d1d1f;">🎨 Confidence Color Coding</h3>
-            <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px;">
-                <div style="
-                    background: #34c759;
-                    color: white;
-                    padding: 8px 16px;
-                    border-radius: 20px;
-                    font-size: 14px;
-                    font-weight: 500;
-                ">🟢 High (≥90%)</div>
-                <div style="
-                    background: #ff9500;
-                    color: white;
-                    padding: 8px 16px;
-                    border-radius: 20px;
-                    font-size: 14px;
-                    font-weight: 500;
-                ">🟡 Good (75-89%)</div>
-                <div style="
-                    background: #ff3b30;
-                    color: white;
-                    padding: 8px 16px;
-                    border-radius: 20px;
-                    font-size: 14px;
-                    font-weight: 500;
-                ">🟠 Moderate (60-74%)</div>
-                <div style="
-                    background: #ff2d92;
-                    color: white;
-                    padding: 8px 16px;
-                    border-radius: 20px;
-                    font-size: 14px;
-                    font-weight: 500;
-                ">🔴 Low (<60%)</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
