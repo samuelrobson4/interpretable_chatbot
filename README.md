@@ -87,42 +87,11 @@ Each token is rendered with:
 - **Visual indicator**: Dotted underline to suggest interactivity
 - **Cursor change**: Help cursor on hover
 
-### API Configuration
-
-- **Model**: `gpt-3.5-turbo-instruct`
-- **Logprobs**: 5 (returns top 5 probability distributions per token)
-- **Max Tokens**: 150
-- **Temperature**: 0.7
-
-## 📁 Project Structure
-
-```
-Interp/
-├── app.py              # Main Streamlit application
-├── requirements.txt    # Python dependencies
-├── env_example.txt     # Example environment configuration
-└── README.md          # This file
-```
-
 ## 🛠️ Dependencies
 
 - **Streamlit**: Web application framework
 - **OpenAI**: API client for GPT models (v1.0.0+)
 - **python-dotenv**: Environment variable management
-
-## 🔒 Security Notes
-
-- API keys are stored securely in environment variables
-- HTML content is properly escaped to prevent XSS attacks
-- No sensitive data is logged or stored
-
-## 🤝 Contributing
-
-Feel free to submit issues and enhancement requests!
-
-## 📄 License
-
-This project is open source and available under the MIT License. 
 
 ## 👤 Made by
 
@@ -132,3 +101,7 @@ Product-minded strategist and AI prototyper
 🛠️ Interpretability · Tangible Interfaces · Human-Centered AI
 
 [GitHub](https://github.com/samuelrobson4) · [LinkedIn](https://www.linkedin.com/in/samuelrobson1/)
+
+## 📄 License
+
+This project is open source and available under the MIT License. 
